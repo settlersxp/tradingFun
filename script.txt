@@ -1,0 +1,12 @@
+//@version=3
+study("Gabi")
+rsiValue = rsi(close,5)
+
+ma5 = sma(close,5)
+ma200= sma(close, 200)
+
+uptrend = ma5>ma200
+
+col = uptrend ? green:red
+
+plot(rsiValue, title="RSI", style=line, linewidth=2,color=col)
