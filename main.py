@@ -3,7 +3,7 @@ from time import mktime
 import numpy as np
 
 import datetime
-#The folder where the processed data exist
+
 processedFolder = 'processed/'
 
 
@@ -45,8 +45,6 @@ class Interval:
         'durations': [],
         'isUptrend': True
     }
-    
-    #Examples of intervals: 5 minutes, 10 minutes, 15 minutes, 1 hour, 3 hours, 4 hours etc
     currentInterval = []
 
     periodDuration = None
@@ -63,8 +61,7 @@ class Interval:
             assert False, 'date unsupported'
 
         self.dateDuration = dateDuration
-        
-    #---a candle it is added to the time frame. Every interval time frame has it's own internal object where it holds data---
+
     def add(self, candle):
         if len(self.currentInterval) == 0:
             self.currentInterval.append(candle)
@@ -82,7 +79,7 @@ class Interval:
                 self.internalData['ohlc']['h'] = candle['o']
 
             return
-        #calculate if the current candle should go in the curent interval or in the next
+
         if mktime(candle['d']) - mktime(self.currentInterval[0]['d']) < self.periodDuration:
             self.currentInterval.append(candle)
         else:
@@ -92,7 +89,6 @@ class Interval:
             #TODO: implement dinamic period duration. Somtimes candles come with a slight delay, for example every 322s vs 300s. This can lead to big problems down the line
             #TODO: what happens when a new candle is created? What information gets copied?
 
-        #--- The body of the candle for the curent interval is created here from very small candles---
         # update the new closing, this happens always
         self.internalData['ohlc']['c'] = candle['c']
         # calculate the new high
@@ -116,15 +112,11 @@ class Interval:
         return
 
 
-#---Only used to prepare data, not useful---
 # helper = Helper()
 # helper.process_files(['USDCHF-2018-01.csv', 'USDCHF-2018-02.csv', 'USDCHF-2018-04.csv', 'USDCHF-2018-05.csv', 'USDCHF-2018-06.csv'])
 # helper.process_files(['USDCHF-2018-01.csv'])
+data = np.load(processedFolder + 'min-USDCHF-2018-01.csv.npy')
 
-#load the data
-data = np.load(processedFolder + 'USDCHF-2018-01.csv.npy')
-
-#declare some Interval objects, mostly for testing
 fiveMin = Interval('minute', 5)
 tenMin = Interval('minute', 10)
 fifteenMin = Interval('minute', 15)
@@ -132,5 +124,4 @@ oneHour = Interval('hour', 1)
 
 # simulate the candle ticking
 for candle in data:
-    #a new candle has been received from the API, we try to add it to all the intervals
     fiveMin.add(candle)
