@@ -134,12 +134,11 @@ class Calculations(Interval):
 
     def add(self, candle, index):
         Interval.add(self, candle, index)
-        self.RSI(5)
 
     def __calculateRSI(self, smoothRSI: float) -> float:
         return (100 - (100 / 1 + smoothRSI))
 
-    def __calculateSmoothedRS(self, metric, duration):
+    def __calculateSmoothedRS(self, metric: str, duration: int) -> float:
         downtrendSum, uptrendSum = self.__trendSums(duration, metric)
 
         # if the difference is positive, it is gain, otherwise a loss
@@ -159,10 +158,19 @@ class Calculations(Interval):
         return above / bellow
 
     # calculate the RSI of the desired duration and metric. By default c (close) is used.
+    # math formulas calculated from http://cns.bu.edu/~gsc/CN710/fincast/Technical%20_indicators/Relative%20Strength%20Index%20(RSI).htm
     # Available options: o,h,l
     # for open, high, low
     def RSI(self, duration: int, metric='c'):
         length = len(self.allCandles)
+
+        # this candle has been processed already
+        if length == self.__lastProcessedIndex['RSI-' + str(duration) + '-' + metric]:
+            return
+
+        # not enough candles to calculate the RSI
+        if length < duration:
+            return
 
         # the initial RSI
         if length == duration:
@@ -178,16 +186,12 @@ class Calculations(Interval):
             }
             return
 
-        if length > duration:
-            object = self.RSIholder[str(duration) + '-' + metric]
-            object['smoothed'] = self.__calculateSmoothedRS(metric, duration)
-            object['current'] = self.__calculateRSI(object['smoothed'])
-            object['historical'].append(object['current'])
-            object['lastIndex'] = length
-
-            return
-
-        #TODO: It should not process this if there is no new candle
+        # normal RSI
+        object = self.RSIholder[str(duration) + '-' + metric]
+        object['smoothed'] = self.__calculateSmoothedRS(metric, duration)
+        object['current'] = self.__calculateRSI(object['smoothed'])
+        object['historical'].append(object['current'])
+        object['lastIndex'] = length
 
     # calculates the uptrend and downtrend streams for the last candles
     def __trendSums(self, duration: int, metric: str) -> (int, int):
@@ -200,8 +204,12 @@ class Calculations(Interval):
                 downtrendSum += pastCandle['ohlc'][metric]
         return downtrendSum, uptrendSum
 
+    def initiate(self, metricName: str, duration: int, metric: str):
+        keyName = metricName + '-' + str(duration) + '-' + metric
+        self.__lastProcessedIndex.update({keyName: 0})
 
-helper = Helper()
+
+# helper = Helper()
 # helper.process_files(['USDCHF-2018-01.csv', 'USDCHF-2018-02.csv', 'USDCHF-2018-04.csv', 'USDCHF-2018-05.csv', 'USDCHF-2018-06.csv'])
 numberOfRows = '10000'
 fileName = 'USDCHF-2018-02.csv'
@@ -212,11 +220,13 @@ if numberOfRows != 'all':
 data = np.load(processedFolder + fileName + '.npy')
 
 fiveMin = Calculations('minute', 5)
-
+fiveMin.initiate('RSI', 5, 'c')
 i = 0
 # simulate the candle ticking
 for candle in data:
     fiveMin.add(candle, i)
+
+    fiveMin.RSI(5, 'c')
     i += 1
 
 print('asd')
