@@ -8,6 +8,13 @@ class EMA:
         self.allCandles = allCandles
         self.lastProcessedIndex = lastProcessedIndex
 
+    def initiate(self, duration: int, metric: str):
+        durationMetric = str(duration) + '-' + metric
+        keyName = 'EMA-' + durationMetric
+        self.lastProcessedIndex.update({keyName: 0})
+        self.multiplicators.update({durationMetric: self.SMA_multiplicator(duration)})
+        self.EMAHolder.update({durationMetric: []})
+
     # calculates Simple Moving Average
     # 10 period sum / 10
     def SMA(self, duration: int, metric='c') -> float:
@@ -33,8 +40,13 @@ class EMA:
 
         durationMetric = str(duration) + '-' + metric
         keyName = 'EMA-' + durationMetric
+
+        if length == self.lastProcessedIndex[keyName]:
+            return
+
         existingEmas = len(self.EMAHolder[durationMetric])
 
+        #the initial EMA
         if existingEmas == 0:
             prevDayValue = self.SMA(duration, metric)
             self.lastProcessedIndex[keyName] = length
@@ -45,9 +57,3 @@ class EMA:
         self.EMAHolder[durationMetric].append(finalValue)
         return finalValue
 
-    def initiate(self, duration: int, metric: str):
-        durationMetric = str(duration) + '-' + metric
-        keyName = 'EMA-' + durationMetric
-        self.lastProcessedIndex.update({keyName: 0})
-        self.multiplicators.update({durationMetric: self.SMA_multiplicator(duration)})
-        self.EMAHolder.update({durationMetric: []})

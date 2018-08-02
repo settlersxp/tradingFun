@@ -1,13 +1,19 @@
 class RSI:
     RSIholder = {}
+    initialHolder = {}
+    smoothedHolder = {}
 
     def __init__(self, allCandles, lastProcessedIndex):
         self.allCandles = allCandles
         self.lastProcessedIndex = lastProcessedIndex
 
     def initiate(self, duration: int, metric: str):
-        keyName = 'RSI-' + str(duration) + '-' + metric
+        durationMetric = str(duration) + '-' + metric
+        keyName = 'RSI-' + durationMetric
         self.lastProcessedIndex.update({keyName: 0})
+        self.RSIholder.update({durationMetric: []})
+        self.initialHolder.update({durationMetric: []})
+        self.smoothedHolder.update({durationMetric: []})
 
     def __calculateRSI(self, smoothRSI: float) -> float:
         return (100 - (100 / 1 + smoothRSI))
@@ -48,32 +54,31 @@ class RSI:
     # for open, high, low
     def RSI(self, duration: int, metric='c'):
         length = len(self.allCandles)
-
-        # this candle has been processed already
-        if length == self.lastProcessedIndex['RSI-' + str(duration) + '-' + metric]:
-            return
+        durationMetric = str(duration) + '-' + metric
 
         # not enough candles to calculate the RSI
         if length < duration:
             return
 
-        # the initial RSI
-        if length == duration:
-            downtrendSum, uptrendSum = self.__trendSums(duration, metric)
-
-            initial = (uptrendSum / duration) / (downtrendSum / duration)
-            self.RSIholder[str(duration) + '-' + metric] = {
-                'lastIndex': length,
-                'initial': initial,
-                'current': self.__calculateRSI(initial),
-                'smoothed': self.__calculateSmoothedRS(metric, duration),
-                'historical': []
-            }
+        # this candle has been processed already
+        keyName = 'RSI-' + durationMetric
+        if length == self.lastProcessedIndex[keyName]:
             return
 
-        # normal RSI
-        object = self.RSIholder[str(duration) + '-' + metric]
-        object['smoothed'] = self.__calculateSmoothedRS(metric, duration)
-        object['current'] = self.__calculateRSI(object['smoothed'])
-        object['historical'].append(object['current'])
-        object['lastIndex'] = length
+        numberOfCalculatedRSIs = len(self.RSIholder[durationMetric])
+
+        if numberOfCalculatedRSIs == 0:
+            # the initial RSI
+            downtrendSum, uptrendSum = self.__trendSums(duration, metric)
+            initial = (uptrendSum / duration) / (downtrendSum / duration)
+            self.initialHolder[durationMetric] = initial
+            currentRSIValue = self.__calculateRSI(initial)
+        else:
+            # normal RSI
+            smoothRSI = self.__calculateSmoothedRS(metric, duration)
+            self.smoothedHolder[durationMetric] = smoothRSI
+            currentRSIValue = self.__calculateRSI(smoothRSI)
+
+        self.lastProcessedIndex[keyName] = length
+        self.RSIholder[durationMetric].append(currentRSIValue)
+        return currentRSIValue
