@@ -13,7 +13,7 @@ class EMA:
     def SMA(self, duration: int, metric='c') -> float:
         sum = 0
         for candle in self.allCandles[:duration]:
-            sum += candle[metric]
+            sum += candle['ohlc'][metric]
 
         return sum / duration
 
@@ -33,18 +33,16 @@ class EMA:
 
         durationMetric = str(duration) + '-' + metric
         keyName = 'EMA-' + durationMetric
-        existingEmas = len(self.lastProcessedIndex[keyName])
+        existingEmas = len(self.EMAHolder[durationMetric])
 
         if existingEmas == 0:
             prevDayValue = self.SMA(duration, metric)
             self.lastProcessedIndex[keyName] = length
-            self.EMAHolder[keyName].append(prevDayValue)
+            self.EMAHolder[durationMetric].append(prevDayValue)
 
-        finalValue = (self.allCandles[metric] - self.EMAHolder[keyName][:-1]) * \
-                     self.multiplicators[durationMetric] + \
-                     self.EMAHolder[keyName][:-1]
+        finalValue = (self.allCandles[-1]['ohlc'][metric] - self.EMAHolder[durationMetric][-1]) * self.multiplicators[durationMetric] + self.EMAHolder[durationMetric][-1]
 
-        self.EMAHolder[keyName].append(finalValue)
+        self.EMAHolder[durationMetric].append(finalValue)
         return finalValue
 
     def initiate(self, duration: int, metric: str):
