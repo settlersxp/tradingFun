@@ -44,16 +44,17 @@ class EMA:
         if length == self.lastProcessedIndex[keyName]:
             return
 
-        existingEmas = len(self.EMAHolder[durationMetric])
+        numberOfCalculatedEMAs = len(self.EMAHolder[durationMetric])
 
         #the initial EMA
-        if existingEmas == 0:
+        if numberOfCalculatedEMAs == 0:
             prevDayValue = self.SMA(duration, metric)
-            self.lastProcessedIndex[keyName] = length
+
             self.EMAHolder[durationMetric].append(prevDayValue)
 
         finalValue = (self.allCandles[-1]['ohlc'][metric] - self.EMAHolder[durationMetric][-1]) * self.multiplicators[durationMetric] + self.EMAHolder[durationMetric][-1]
 
+        self.lastProcessedIndex[keyName] = length
         self.EMAHolder[durationMetric].append(finalValue)
         return finalValue
 
