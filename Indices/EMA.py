@@ -3,58 +3,59 @@
 class EMA:
     EMAHolder = {}
     multiplicators = {}
+    metric = ''
+    duration = 0
+    durationMetric = ''
+    keyName = ''
 
-    def __init__(self, allCandles, lastProcessedIndex):
+    def __init__(self, allCandles, lastProcessedIndex, duration: int, metric: str):
+        self.duration = duration
+        self.metric = metric
         self.allCandles = allCandles
         self.lastProcessedIndex = lastProcessedIndex
-
-    def initiate(self, duration: int, metric: str):
-        durationMetric = str(duration) + '-' + metric
-        keyName = 'EMA-' + durationMetric
-        self.lastProcessedIndex.update({keyName: 0})
-        self.multiplicators.update({durationMetric: self.SMA_multiplicator(duration)})
-        self.EMAHolder.update({durationMetric: []})
+        self.durationMetric = str(duration) + '-' + metric
+        self.keyName = 'EMA-' + self.durationMetric
+        self.lastProcessedIndex.update({self.keyName: 0})
+        self.multiplicators.update({self.durationMetric: self.SMA_multiplicator()})
+        self.EMAHolder.update({self.durationMetric: []})
 
     # calculates Simple Moving Average
     # 10 period sum / 10
-    def SMA(self, duration: int, metric='c') -> float:
+    def SMA(self) -> float:
         sum = 0
-        for candle in self.allCandles[:duration]:
-            sum += candle['ohlc'][metric]
+        for candle in self.allCandles[:self.duration]:
+            sum += candle['ohlc'][self.metric]
 
-        return sum / duration
+        return sum / self.duration
 
     # it is used in order to emphasize the newer candles of the older
     # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
-    def SMA_multiplicator(self, duration: int) -> float:
-        return (2 / (duration + 1))
+    def SMA_multiplicator(self) -> float:
+        return (2 / (self.duration + 1))
 
     # https://github.com/patharanordev/ema
     # EMA - Estimated moving average
     # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day).
-    def EMA(self, duration, metric):
+    def EMA(self):
         length = len(self.allCandles)
 
-        if length < duration:
+        if length < self.duration:
             return
 
-        durationMetric = str(duration) + '-' + metric
-        keyName = 'EMA-' + durationMetric
-
-        if length == self.lastProcessedIndex[keyName]:
+        if length == self.lastProcessedIndex[self.keyName]:
             return
 
-        numberOfCalculatedEMAs = len(self.EMAHolder[durationMetric])
+        numberOfCalculatedEMAs = len(self.EMAHolder[self.durationMetric])
 
         #the initial EMA
         if numberOfCalculatedEMAs == 0:
-            prevDayValue = self.SMA(duration, metric)
+            prevDayValue = self.SMA()
 
-            self.EMAHolder[durationMetric].append(prevDayValue)
+            self.EMAHolder[self.durationMetric].append(prevDayValue)
 
-        finalValue = (self.allCandles[-1]['ohlc'][metric] - self.EMAHolder[durationMetric][-1]) * self.multiplicators[durationMetric] + self.EMAHolder[durationMetric][-1]
+        finalValue = (self.allCandles[-1]['ohlc'][self.metric] - self.EMAHolder[self.durationMetric][-1]) * self.multiplicators[self.durationMetric] + self.EMAHolder[self.durationMetric][-1]
 
-        self.lastProcessedIndex[keyName] = length
-        self.EMAHolder[durationMetric].append(finalValue)
+        self.lastProcessedIndex[self.keyName] = length
+        self.EMAHolder[self.durationMetric].append(finalValue)
         return finalValue
 

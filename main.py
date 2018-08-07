@@ -1,31 +1,41 @@
-import numpy as np
-
 from Helpers.Calculations import Calculations
+from Helpers.Helper import Helper
+from Indices.EMA import EMA
+from Indices.MACD import MACD
+from Indices.RSI import RSI
+from Setup.DatabaseSetup import DatabaseSetup
 
 processedFolder = 'processed/'
 
-# helper = Helper()
-# helper.process_files(['USDCHF-2018-01.csv', 'USDCHF-2018-02.csv', 'USDCHF-2018-04.csv', 'USDCHF-2018-05.csv', 'USDCHF-2018-06.csv'])
-numberOfRows = '10000'
-fileName = 'USDCHF-2018-02.csv'
-# helper.process_files([fileName], numberOfRows)
-if numberOfRows != 'all':
-    fileName = numberOfRows + '-' + fileName
+helper = Helper("Helpers")
+database = DatabaseSetup(helper)
+currencyPairs = ['EURUSD', 'EURJPY', 'EURCHF', 'EURNZD', 'USDCAD', 'USDNZD', 'USDJPY']
 
-data = np.load(processedFolder + fileName + '.npy')
+connection = database.create_connection()
+
+allTicks = database.getAllTicksForPair(connection, currencyPairs[0])
 
 fiveMin = Calculations('minute', 5)
-fiveMin.RSI.initiate(5, 'c')
-fiveMin.EMA.initiate(9, 'c')
+fiveRSI = RSI(fiveMin.allCandles, fiveMin.lastProcessedIndex, 5,'c')
+
+fiveEMA = EMA(fiveMin.allCandles, fiveMin.lastProcessedIndex, 9, 'c')
+
+fiveMACD = MACD(fiveMin.allCandles, fiveMin.lastProcessedIndex, 1, 3, 5, 'c')
+lastProcessedCandle = 0
 
 i = 0
-# simulate the candle ticking
-for candle in data:
-    fiveMin.add(candle, i)
 
-    fiveMin.RSI.RSI(5, 'c')
-    fiveMin.EMA.EMA(9, 'c')
 
-    i += 1
+for candle in allTicks:
+    fiveMin.add(candle)
+
+    if len(fiveMin.allCandles) == lastProcessedCandle:
+        continue
+
+    localRSI = fiveRSI.RSI()
+    localEMA = fiveEMA.EMA()
+    localMACD = fiveMACD.MACD()
+    lastProcessedCandle = len(fiveMin.allCandles)
+
 
 print('asd')

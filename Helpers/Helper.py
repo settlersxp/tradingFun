@@ -11,7 +11,7 @@ class Helper:
         self.processedFolder = processedFolder
 
     def get_config_value(self, section, key, file='setupConfig.ini'):
-        self.parser.read(file)
+        self.parser.read(self.processedFolder+'/'+file)
         return self.parser.get(section, key)
 
     def generate_fibonacci_for_n_elements(self, n):
