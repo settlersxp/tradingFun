@@ -1,3 +1,5 @@
+import time
+from datetime import datetime
 from time import mktime
 
 
@@ -11,10 +13,12 @@ class Interval:
     allCandles = []
     tempSection = []
 
+    timeAtBeginningOfHour = None
     periodDuration = None
     dateDuration = None
+    lastCandleAtPosition = 0
 
-    def __init__(self, dateType, dateDuration):
+    def __init__(self, dateType, dateDuration, firstTick, timeAtBeginningOfHour):
         if 'min' in dateType:
             self.periodDuration = dateDuration * 60
         elif 'hour' in dateType:
@@ -24,7 +28,14 @@ class Interval:
         else:
             assert False, 'date unsupported'
 
+        #how many minutes, hours or days are inside a candle
         self.dateDuration = dateDuration
+
+        self.timeAtBeginningOfHour = timeAtBeginningOfHour
+
+        timeDifference = firstTick[1] - self.timeAtBeginningOfHour
+        result = divmod(timeDifference, self.periodDuration)
+        self.lastCandleAtPosition = result[0]
 
     def add(self, candle):
 
@@ -35,20 +46,22 @@ class Interval:
             self.internalData['ohlc']['l'] = candle[0]
             return
 
-        if candle[1] - self.tempSection[0][1] < self.periodDuration:
+        timeDifference = candle[1] - self.timeAtBeginningOfHour
+        result = divmod(timeDifference, self.periodDuration)
+        if result[0] == self.lastCandleAtPosition:
             self.tempSection.append(candle)
         else:
+            self.lastCandleAtPosition = result[0]
             self.internalData['durations'].append(self.tempSection.copy())
             self.allCandles.append(self.internalData.copy())
 
             self.internalData = {
-                'ohlc': {'o': 0, 'h': 0, 'l': 0, 'c': 0},
+                'ohlc': {'o': candle[0], 'h': candle[0], 'l': candle[0], 'c': 0},
                 'durations': [],
                 'isUptrend': True
             }
             self.tempSection.clear()
             # TODO: implement indexes for the received candles. No need co copy the data all the time
-            # TODO: implement dinamic period duration. Somtimes candles come with a slight delay, for example every 322s vs 300s. This can lead to big problems down the line
 
         if candle[0] > self.internalData['ohlc']['h']:
             self.internalData['ohlc']['h'] = candle[0]
