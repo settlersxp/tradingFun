@@ -4,6 +4,8 @@ class RSI:
     smoothedHolder = {}
     metric = ''
     duration = 0
+    previousGain = 0
+    previousLoss = 0
 
     def __init__(self, allCandles, lastProcessedIndex, duration: int, metric: str):
         self.allCandles = allCandles
@@ -17,33 +19,28 @@ class RSI:
         self.initialHolder.update({self.durationMetric: []})
         self.smoothedHolder.update({self.durationMetric: []})
 
-    def __calculateRSI(self, smoothRSI: float) -> float:
-        return (100 - (100 / 1 + smoothRSI))
+    def calculateRSI(self, smoothRSI: float) -> float:
+        return (100 - (100 / (1 + smoothRSI)))
 
-    def __calculateSmoothedRS(self) -> float:
-        downtrendSum, uptrendSum = self.__trendSums()
+    def calculateSmoothedRS(self, previousAverageGain: float, previousAverageLoss: float) -> float:
+        currentGain = 0
+        currentLoss = 0
 
-        # if the difference is positive, it is gain, otherwise a loss
-        # the last candle is self.allCandles[-1], the candle before that is self.allCandles[-2]
-        difference = self.allCandles[-1]['ohlc'][self.metric] - self.allCandles[-2]['ohlc'][self.metric]
-
-        if difference > 0:
-            up = difference
-            down = 0
+        if self.allCandles[-1]['ohlc'][self.metric] > self.allCandles[-2]['ohlc'][self.metric]:
+            currentGain = self.allCandles[-1]['ohlc'][self.metric]-self.allCandles[-2]['ohlc'][self.metric]
         else:
-            up = 0
-            down = difference
+            currentLoss = self.allCandles[-2]['ohlc'][self.metric]-self.allCandles[-1]['ohlc'][self.metric]
 
-        above = ((uptrendSum * (self.duration - 1) + up) / self.duration)
-        bellow = ((downtrendSum * (self.duration - 1) + down) / self.duration)
+        above = ((previousAverageGain*(self.duration - 1))+currentGain)/self.duration
+        bellow = ((previousAverageLoss*(self.duration - 1))+currentLoss)/self.duration
 
         return above / bellow
 
     # calculates the uptrend and downtrend streams for the last candles
-    def __trendSums(self) -> (int, int):
+    def trendSums(self) -> (int, int):
         uptrendSum = 0
         downtrendSum = 0
-        for pastCandle in self.allCandles[:self.duration]:
+        for pastCandle in self.allCandles[-self.duration:]:
             if pastCandle['isUptrend']:
                 uptrendSum += pastCandle['ohlc'][self.metric]
             else:
@@ -66,19 +63,23 @@ class RSI:
             return
 
         numberOfCalculatedRSIs = len(self.holder[self.durationMetric])
+        downtrendSum, uptrendSum = self.trendSums()
+        averageGain = uptrendSum/self.duration
+        averageLoss = downtrendSum/self.duration
 
         if numberOfCalculatedRSIs == 0:
             # the initial RSI
-            downtrendSum, uptrendSum = self.__trendSums()
-            initial = (uptrendSum / self.duration) / (downtrendSum / self.duration)
-            self.initialHolder[self.durationMetric] = initial
-            currentRSIValue = self.__calculateRSI(initial)
+            initialRS = averageGain / averageLoss
+            self.initialHolder[self.durationMetric] = initialRS
+            currentRSIValue = self.calculateRSI(initialRS)
         else:
             # normal RSI
-            smoothRSI = self.__calculateSmoothedRS()
+            smoothRSI = self.calculateSmoothedRS(self.previousGain, self.previousLoss)
             self.smoothedHolder[self.durationMetric] = smoothRSI
-            currentRSIValue = self.__calculateRSI(smoothRSI)
+            currentRSIValue = self.calculateRSI(smoothRSI)
 
+        self.previousGain = averageGain
+        self.previousLoss = averageLoss
         self.lastProcessedIndex[self.keyName] = length
         self.holder[self.durationMetric].append(currentRSIValue)
         return currentRSIValue

@@ -32,7 +32,7 @@ timeAtBeginningOfHour = time.mktime(datetime.strptime(stringAtBeginningOfHour, "
 
 #The initialization of the 5 minutes candle and some of the indicators, as an example
 fiveMin = Calculations('minute', 15, allTicks[0], timeAtBeginningOfHour)
-fiveRSI = RSI(fiveMin.allCandles, fiveMin.lastProcessedIndex, 5, 'c')
+fiveRSI = RSI(fiveMin.allCandles, fiveMin.lastProcessedIndex, 14, 'c')
 fiveEMA = EMA(fiveMin.allCandles, fiveMin.lastProcessedIndex, 9, 'c')
 fiveMACD = MACD(fiveMin.allCandles, fiveMin.lastProcessedIndex, 9, 16, 26, 'c')
 
