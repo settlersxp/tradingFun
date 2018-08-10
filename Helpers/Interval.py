@@ -1,12 +1,13 @@
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from time import mktime
 
 
 class Interval:
     internalData = {
-        'ohlc': {'o': 0, 'h': 0, 'l': 0, 'c': 0},
+        'ohlc': {'h': 0, 'l': 0, 'o': 0, 'c': 0},
         'durations': [],
+        'for':None,
         'isUptrend': True
     }
 
@@ -41,9 +42,12 @@ class Interval:
 
         if len(self.tempSection) == 0:
             self.tempSection.append(candle)
-            self.internalData['ohlc']['o'] = candle[0]
-            self.internalData['ohlc']['h'] = candle[0]
-            self.internalData['ohlc']['l'] = candle[0]
+            candleAt = datetime.fromtimestamp(candle[1]).astimezone(tz=timezone.utc)
+            self.internalData = {
+                'ohlc': {'h': candle[0], 'l': candle[0], 'o': candle[0], 'c': candle[0]},
+                'durations': [],
+                'for': candleAt,
+            }
             return
 
         timeDifference = candle[1] - self.timeAtBeginningOfHour
@@ -52,13 +56,20 @@ class Interval:
             self.tempSection.append(candle)
         else:
             self.lastCandleAtPosition = result[0]
+
+            #if the closing price is greater than the opening price it's uptrend
+            isUptrend = self.internalData['ohlc']['c'] > self.internalData['ohlc']['o']
+            self.internalData['isUptrend'] = isUptrend
+
             self.internalData['durations'].append(self.tempSection.copy())
             self.allCandles.append(self.internalData.copy())
 
+            candleAt = datetime.fromtimestamp(candle[1]).astimezone(tz=timezone.utc)
+
             self.internalData = {
-                'ohlc': {'o': candle[0], 'h': candle[0], 'l': candle[0], 'c': 0},
+                'ohlc': {'h': candle[0], 'l': candle[0], 'o': candle[0], 'c': 0},
                 'durations': [],
-                'isUptrend': True
+                'for':candleAt
             }
             self.tempSection.clear()
             # TODO: implement indexes for the received candles. No need co copy the data all the time

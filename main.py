@@ -31,10 +31,10 @@ stringAtBeginningOfHour = "{}:{}:{} {}".format(currentTimestamp.year, currentTim
 timeAtBeginningOfHour = time.mktime(datetime.strptime(stringAtBeginningOfHour, "%Y:%m:%d %H").timetuple())
 
 #The initialization of the 5 minutes candle and some of the indicators, as an example
-fiveMin = Calculations('minute', 5, allTicks[0], timeAtBeginningOfHour)
+fiveMin = Calculations('minute', 15, allTicks[0], timeAtBeginningOfHour)
 fiveRSI = RSI(fiveMin.allCandles, fiveMin.lastProcessedIndex, 5, 'c')
 fiveEMA = EMA(fiveMin.allCandles, fiveMin.lastProcessedIndex, 9, 'c')
-fiveMACD = MACD(fiveMin.allCandles, fiveMin.lastProcessedIndex, 1, 3, 5, 'c')
+fiveMACD = MACD(fiveMin.allCandles, fiveMin.lastProcessedIndex, 9, 16, 26, 'c')
 
 #the 'lastProcessedCandle' variable is used to determine if we need to calculate the indices again. It is not the final
 # implementation. We need a 'lastProcessedCandle' for each individual time interval.
